@@ -222,9 +222,11 @@ class SupervisorGA:
                 circles = self.detect_circles()
                 # print(circles)
                 for (length,(start_idx,end_idx)) in circles:
-                    if length/4.0>0.8 and length/4.0<1.2:
+                    if length/4.0>0.9 and length/4.0<1.1:
                         fitness += 0.1
                         break
+                    elif length/4.0>0.8 and length/4.0<1.2:
+                        fitness += 0.05
 
                 print(population,fitness)
                 # Save its fitness value
