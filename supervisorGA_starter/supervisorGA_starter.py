@@ -5,6 +5,7 @@ from controller import Display
 import numpy,struct
 import ga,os
 import sys
+import numpy as np
 
 
 class SupervisorGA:
@@ -64,7 +65,43 @@ class SupervisorGA:
         self.prev_average_fitness = 0.0;
         self.display.drawText("Fitness (Best - Red)", 0,0)
         self.display.drawText("Fitness (Average - Green)", 0,10)
-        
+        self.position_history = []
+
+    def detect_circles(self, close_threshold=0.05, min_circle_len=2):
+        """
+        从一系列顺序点中检测出机器人画出的圈，并计算每个圈的周长。
+
+        参数:
+          points: list of [x, z] 坐标（顺序的轨迹点）
+          close_threshold: 判定“回到起点”的距离阈值（单位: m）
+          min_circle_len: 每圈最小路径长度，避免噪声误判（单位: m）
+
+        返回:
+          circles: list，每个元素是 (圈的周长, 该圈的起止索引)
+        """
+        points = self.position_history
+        circles = []
+        start_idx = 0
+        accumulated_len = 0.0
+
+        for i in range(1, len(points)):
+            p0 = np.array(points[i - 1])
+            p1 = np.array(points[i])
+            step_dist = np.linalg.norm(p1 - p0)
+            accumulated_len += step_dist
+
+            # 判断是否回到当前圈的起点附近
+            if np.linalg.norm(p1 - np.array(points[start_idx])) < close_threshold and accumulated_len > min_circle_len:
+                # 计算该圈的总路径长度
+                circle_points = points[start_idx:i + 1]
+                circle_len = np.sum(np.linalg.norm(np.diff(circle_points, axis=0), axis=1))
+                circles.append((circle_len, (start_idx, i)))
+
+                # 更新起点
+                start_idx = i
+                accumulated_len = 0.0
+
+        return circles
 
     def createRandomPopulation(self):
         # Wait until the supervisor receives the size of the genotypes (number of weights)
@@ -103,6 +140,7 @@ class SupervisorGA:
         self.real_speed = (v[0]**2 + v[1]**2 + v[2]**2)**0.5
         self.emitter.send("real_speed: {}".format(self.real_speed).encode("utf-8"))
         pos = self.robot_node.getPosition()
+        self.position_history.append(([pos[0],pos[1]]))
         # print("Position:",pos)
         self.emitter.send("position: {} ".format([pos[0],pos[1],pos[2]]).encode("utf-8"))
         # print("position: {} ".format([pos[0],pos[1],pos[2]]))
@@ -175,11 +213,19 @@ class SupervisorGA:
             self.current_generation = generation
             # Select each Genotype or Individual
             for population in range(self.num_population):
+                self.position_history = []
                 genotype = self.population[population]
 
                 # print("  Individual: {}".format(population))
                 # Evaluate
                 fitness = self.evaluate_genotype(genotype,generation)
+                circles = self.detect_circles()
+                print(circles)
+                for (length,(start_idx,end_idx)) in circles:
+                    if length/4.0>0.8 and length/4.0<1.2:
+                        fitness += 0.2
+                        break
+
                 print(population,fitness)
                 # Save its fitness value
                 current_population.append((genotype,float(fitness)))

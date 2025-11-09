@@ -100,6 +100,7 @@ class Controller:
         self.action_number = 0
 
 
+
     def forwardFitness(self):
         """
         前进适应度函数
@@ -562,7 +563,8 @@ class Controller:
         #     # print("real speed:",self.real_speed)
         #     print("velocity_left, velocity_right:",self.velocity_left,self.velocity_right)
         self.fitness_values.append(combinedFitness)
-        self.fitness = np.mean(self.fitness_values) 
+        self.fitness = np.mean(self.fitness_values)
+
 
     def handle_emitter(self):
         # Send the self.fitness value to the supervisor
