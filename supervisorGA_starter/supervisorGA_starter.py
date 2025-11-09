@@ -220,10 +220,10 @@ class SupervisorGA:
                 # Evaluate
                 fitness = self.evaluate_genotype(genotype,generation)
                 circles = self.detect_circles()
-                print(circles)
+                # print(circles)
                 for (length,(start_idx,end_idx)) in circles:
                     if length/4.0>0.8 and length/4.0<1.2:
-                        fitness += 0.2
+                        fitness += 0.1
                         break
 
                 print(population,fitness)
