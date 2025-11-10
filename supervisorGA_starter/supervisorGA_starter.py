@@ -189,9 +189,9 @@ class SupervisorGA:
         self.emitterData = str(genotype) 
         
         # Reset robot position and physics
-        INITIAL_TRANS = [4.48, 0, 7.63]
+        INITIAL_TRANS = [0.47, 0.16, 0]
         self.trans_field.setSFVec3f(INITIAL_TRANS)
-        INITIAL_ROT = [0, 1, 0, -0.0]
+        INITIAL_ROT = [0, 0, 1, 1.57]
         self.rot_field.setSFRotation(INITIAL_ROT)
         self.robot_node.resetPhysics()
     

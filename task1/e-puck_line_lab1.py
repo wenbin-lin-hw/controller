@@ -161,6 +161,113 @@ class Controller:
                         elif(self.inputs[2] < self.inputs[0] and self.inputs[2] < self.inputs[1]):
                             self.velocity_left = 1;
                             self.velocity_right = 0.5;
+                        else:
+                            # ========== Original Line Following Logic (UNCHANGED) ==========
+                            # Check for any possible collision (original code)
+                            if (np.max(self.inputs[3:9]) > 0.4):
+                                time = datetime.now()
+                                print("({} - {}) Object or walls detected!".format(time.second, time.microsecond))
+
+                            # Turn
+                            if (self.flag_turn):
+                                self.velocity_left = -0.3
+                                self.velocity_right = 0.3
+                                if (np.min(self.inputs[0:3]) < 0.35):
+                                    self.flag_turn = 0
+                            else:
+                                # Check end of line
+                                if ((np.min(self.inputs[0:3]) - np.min(self.inputsPrevious[0:3])) > 0.2):
+                                    self.flag_turn = 1
+                                else:
+                                    # Follow the line
+                                    if (self.inputs[0] < self.inputs[1] and self.inputs[0] < self.inputs[2]):
+                                        self.velocity_left = 0.5
+                                        self.velocity_right = 1
+                                    elif (self.inputs[1] < self.inputs[0] and self.inputs[1] < self.inputs[2]):
+                                        self.velocity_left = 1
+                                        self.velocity_right = 1
+                                    elif (self.inputs[2] < self.inputs[0] and self.inputs[2] < self.inputs[1]):
+                                        self.velocity_left = 1
+                                        self.velocity_right = 0.5
+
+                    elif self.state == 'OBSTACLE_DETECTED':
+                        # Decide which direction to avoid
+                        if obstacle_side in ['front_left', 'left']:
+                            self.state = 'AVOIDING_RIGHT'
+                            print("Starting right avoidance maneuver")
+                        else:
+                            self.state = 'AVOIDING_LEFT'
+                            print("Starting left avoidance maneuver")
+
+                        self.avoidance_counter = 0
+                        self.velocity_left = 0
+                        self.velocity_right = 0
+
+                    elif self.state == 'AVOIDING_LEFT':
+                        # Turn Left to Avoid Obstacle
+                        self.avoidance_counter += 1
+                        if obstacle_distance < 0.05 and obstacle_distance > 0.005:
+                            self.velocity_left = 0.1
+                            self.velocity_right = 1.5
+                        elif obstacle_distance > 0.05:
+                            self.velocity_left = 0.1
+                            self.velocity_right = 1.5
+                        else:
+                            self.state = 'SEARCHING_LINE'
+                            self.search_counter = 0
+                            print("Searching for line")
+                    elif self.state == 'AVOIDING_RIGHT':
+                        # Turn Right to Avoid Obstacle
+                        self.avoidance_counter += 1
+                        if obstacle_distance < 0.05 and obstacle_distance > 0.005:
+                            self.velocity_left = 1.5
+                            self.velocity_right = 0.1
+                        elif obstacle_distance > 0.05:
+                            self.velocity_left = 1.5
+                            self.velocity_right = 0.1
+                        else:
+                            self.state = 'SEARCHING_LINE'
+                            self.search_counter = 0
+                            print("Searching for line")
+
+                    elif self.state == 'SEARCHING_LINE':
+                        # Search for Line After Avoidance
+                        self.search_counter += 1
+                        # Check if we found the line
+                        if self.is_on_line():
+                            self.state = 'LINE_FOLLOWING'
+                            print("Line found! Resuming line following")
+                            # Reset to line following behavior
+                            if (self.inputs[0] < self.inputs[1] and self.inputs[0] < self.inputs[2]):
+                                self.velocity_left = 0.5
+                                self.velocity_right = 1
+                            elif (self.inputs[1] < self.inputs[0] and self.inputs[1] < self.inputs[2]):
+                                self.velocity_left = 1
+                                self.velocity_right = 1
+                            elif (self.inputs[2] < self.inputs[0] and self.inputs[2] < self.inputs[1]):
+                                self.velocity_left = 1
+                                self.velocity_right = 0.5
+                        else:
+                            # Continue searching
+                            if self.obstacle_side in ['front_left', 'left']:
+                                # Turn slightly right while moving forward
+                                self.velocity_left = 0.3
+                                self.velocity_right = 0.8
+                                self.detect_obstacle()
+                            else:
+                                # Turn slightly left while moving forward
+                                self.velocity_left = 0.8
+                                self.velocity_right = 0.3
+                                self.detect_obstacle()
+
+                            # Timeout: if can't find line
+                            if self.search_counter >= self.SEARCH_DURATION:
+                                self.state = 'LINE_FOLLOWING'
+                                print("Search timeout, resuming line following")
+
+                    # Set motor velocities
+                    self.left_motor.setVelocity(self.velocity_left)
+                    self.right_motor.setVelocity(self.velocity_right)
 
 
      
