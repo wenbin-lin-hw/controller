@@ -84,11 +84,12 @@ class Controller:
         has_obstacle = False
         obstacle_side = None
         obstacle_distance = 0
+        # print(len(self.inputs))
         if(len(self.inputs) > 0 and len(self.inputsPrevious) > 0):
             # Check for any possible collision
             if(np.max(self.inputs[3:11]) > 0.4):
                 # Time
-                front_left = max(self.inputs[9], self.inputs[10])  # ps6, ps7
+                front_left = max(self.inputs[6], self.inputs[7])  # ps6, ps7
                 front_right = max(self.inputs[3], self.inputs[4])  # ps0, ps1
                 front_max = max(front_left, front_right)
 
