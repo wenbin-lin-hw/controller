@@ -192,7 +192,7 @@ class Controller:
             fitness = 0.5-abs(self.position[0]-0.46)*(0.5/0.46)
         if fitness ==0 and self.position[1]<0.2 and self.position[1]>-0.3 and self.position[0]<0:
             fitness = 0.5-abs(self.position[0]-0.5)
-        if fitness == 0 and (self.position[1] >=0.2 or self.self.position[1]<-0.3):
+        if fitness == 0 and (self.position[1] >=0.2 or self.position[1]<-0.3):
             x, y = self.position
             distance_from_center = np.sqrt(x ** 2 + y ** 2)
             fitness = 0.5 - (distance_from_center - 0.57) * (0.5 / 0.35)
@@ -711,10 +711,10 @@ def run(robot):
     controller = Controller(robot)
     controller.run_robot()
 
-# if __name__ == "__main__":
-#     # Call Robot function to initialize the robot
-#     my_robot = Robot()
-#     # Initialize the parameters of the controller by sending my_robot
-#     controller = Controller(my_robot)
-#     # Run the controller
-#     controller.run_robot()
+if __name__ == "__main__":
+    # Call Robot function to initialize the robot
+    my_robot = Robot()
+    # Initialize the parameters of the controller by sending my_robot
+    controller = Controller(my_robot)
+    # Run the controller
+    controller.run_robot()
