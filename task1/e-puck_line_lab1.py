@@ -49,7 +49,7 @@ class Controller:
         self.search_counter = 0  # Counter for searching the line
 
         # Obstacle detection thresholds - ADJUSTED FOR SMALL ARENA (2m x 1.8m)
-        self.OBSTACLE_THRESHOLD = 0.03  # Detect obstacle at ~4-5cm (more sensitive)
+        self.OBSTACLE_THRESHOLD = 0.035  # Detect obstacle at ~4-5cm (more sensitive)
         self.OBSTACLE_CLOSE_THRESHOLD = 0.20  # Emergency threshold at ~1.5-2cm
 
         # Avoidance parameters - ADJUSTED FOR SMALL ARENA
