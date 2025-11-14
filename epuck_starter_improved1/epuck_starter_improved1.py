@@ -183,20 +183,22 @@ class Controller:
                    lost_line_penalty)
         # if self.real_speed <0.005 and self.is_on_edge:
         #     fitness = 0.0
-        if self.is_on_edge:
-            fitness = 0.0
+        # if self.is_on_edge:
+        #     fitness = 0.0
 
         if self.real_speed < 0.01:
             fitness -= 0.5
-        if fitness ==0 and self.position[1]<0.2 and self.position[1]>-0.3 and self.position[0]>0:
-            fitness = 0.5-abs(self.position[0]-0.46)*(0.5/0.46)
-        if fitness ==0 and self.position[1]<0.2 and self.position[1]>-0.3 and self.position[0]<0:
-            fitness = 0.5-abs(self.position[0]-0.5)
-        if fitness == 0 and (self.position[1] >=0.2 or self.position[1]<-0.3):
+
+        if fitness <=0 and self.position[1]<0.2 and self.position[1]>-0.3 and self.position[0]>0:
+            fitness = 0.2-abs(self.position[0]-0.46)*(0.2/0.46)
+        if fitness <=0 and self.position[1]<0.2 and self.position[1]>-0.3 and self.position[0]<0:
+            fitness = 0.2-abs(abs(self.position[0])-0.5)*(0.2/0.5)
+        if fitness <= 0 and (self.position[1] >=0.2 or self.position[1]<-0.3):
             x, y = self.position
             distance_from_center = np.sqrt(x ** 2 + y ** 2)
-            fitness = 0.5 - (distance_from_center - 0.57) * (0.5 / 0.35)
-
+            fitness = 0.2 - abs(distance_from_center - 0.57) * (0.2 / 0.2)
+        # if self.action_number%100 ==0:
+        #     print("fitness:",fitness)
         # if self.real_speed < 0.01 and max(abs(self.velocity_left), abs(self.velocity_right)) > 0.5:
         #     fitness -= 0.2
         # if abs(self.velocity_right) != 0:
@@ -348,7 +350,10 @@ class Controller:
                     self.velocity_right) > 0.8 and self.velocity_right * self.velocity_left < 0:
                 fitness = 0.0
         if self.is_on_edge:
-            fitness = 0.0
+            fitness = 0.9
+        x,y = self.position
+        if abs(x)>0.62 or abs(y)>0.66:
+            fitness=0.9
 
         return max(0.0, fitness)
 
