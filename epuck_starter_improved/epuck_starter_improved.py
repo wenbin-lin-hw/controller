@@ -99,6 +99,7 @@ class Controller:
         self.real_speed = 0
         self.is_on_edge = False
         self.action_number = 0
+        self.position = 0,0
 
     def forwardFitness(self):
         # 速度奖励（平滑）
@@ -110,7 +111,7 @@ class Controller:
 
         # 边界惩罚（渐进式）
         x, y = self.position
-        max_dist = 0.7
+        max_dist = 0.64
         distance_from_center = np.sqrt(x ** 2 + y ** 2)
         if distance_from_center > max_dist:
             boundary_penalty = (distance_from_center - max_dist) / 0.1
@@ -596,6 +597,7 @@ class Controller:
                     # print("Received position data:", position_data)
                     # Convert string representation of list to actual list
                     pos = eval(position_data)
+                    self.position = pos[0],pos[1]
                     x, y, z = pos
                     if abs(x) > 0.69 or abs(y) > 0.69:
                         self.is_on_edge = True

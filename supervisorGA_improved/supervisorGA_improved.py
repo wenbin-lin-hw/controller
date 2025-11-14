@@ -12,7 +12,7 @@ class ImprovedSupervisorGA:
     def __init__(self):
         # Simulation Parameters
         self.time_step = 32  # ms
-        self.time_experiment = 150  # s
+        self.time_experiment = 60  # s
         
         # Initiate Supervisor Module
         self.supervisor = Supervisor()
@@ -40,9 +40,9 @@ class ImprovedSupervisorGA:
         self.current_generation = 0
         
         ### 改进的GA参数
-        self.num_generations = 200  # 增加到200代
-        self.num_population = 80    # 增加到80个个体
-        self.num_elite = 8          # 精英数量增加到8
+        self.num_generations = 50  # 增加到200代
+        self.num_population = 40    # 增加到80个个体
+        self.num_elite = 4          # 精英数量增加到8
         
         # 初始化改进的GA
         self.ga = ga.ImprovedGA(
@@ -278,7 +278,7 @@ class ImprovedSupervisorGA:
             print(f"{'='*60}")
             
             # 保存最优个体
-            np.save("Best.npy", best[0])
+            np.save("../supervisorGA_starter/Best.npy", best[0])
             
             # 绘制适应度曲线
             self.plot_fitness(generation, best[1], average, diversity)
@@ -312,7 +312,7 @@ class ImprovedSupervisorGA:
     
     def run_demo(self):
         """运行最优个体演示"""
-        genotype = np.load("Best.npy")
+        genotype = np.load("../supervisorGA_starter/Best.npy")
         self.emitterData = str(genotype)
         
         INITIAL_TRANS = [0.47, 0.16, 0]
