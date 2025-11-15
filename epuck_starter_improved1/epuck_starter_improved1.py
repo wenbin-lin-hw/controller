@@ -120,14 +120,14 @@ class Controller:
             boundary_penalty = min(boundary_penalty, 1.0)
         else:
             boundary_penalty = 0.0
-        max_y = 0.67
-        if abs(y) > max_y:
-            boundary_penalty += (abs(y) - max_y) / 1.0
-            boundary_penalty = min(boundary_penalty, 1.0)
-        max_x = 0.59
-        if abs(x) > max_x:
-            boundary_penalty += (abs(x) - max_x) / 1.0
-            boundary_penalty = min(boundary_penalty, 1.0)
+        # max_y = 0.67
+        # if abs(y) > max_y:
+        #     boundary_penalty += (abs(y) - max_y) / 1.0
+        #     boundary_penalty = min(boundary_penalty, 1.0)
+        # max_x = 0.59
+        # if abs(x) > max_x:
+        #     boundary_penalty += (abs(x) - max_x) / 1.0
+        #     boundary_penalty = min(boundary_penalty, 1.0)
 
         fitness = speed_reward * straightness * (1 - boundary_penalty)
         return max(0, fitness)

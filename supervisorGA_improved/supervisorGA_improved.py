@@ -12,7 +12,7 @@ class ImprovedSupervisorGA:
     def __init__(self):
         # Simulation Parameters
         self.time_step = 32  # ms
-        self.time_experiment = 60  # s
+        self.time_experiment = 150  # s
         
         # Initiate Supervisor Module
         self.supervisor = Supervisor()
@@ -40,9 +40,9 @@ class ImprovedSupervisorGA:
         self.current_generation = 0
         
         ### 改进的GA参数
-        self.num_generations = 50  # 增加到200代
-        self.num_population = 40    # 增加到80个个体
-        self.num_elite = 4          # 精英数量增加到8
+        self.num_generations = 200  # 增加到200代
+        self.num_population = 80    # 增加到80个个体
+        self.num_elite = 8         # 精英数量增加到8
         
         # 初始化改进的GA
         self.ga = ga.ImprovedGA(
@@ -76,8 +76,16 @@ class ImprovedSupervisorGA:
         self.display.drawText("Fitness (Best - Red)", 0, 0)
         self.display.drawText("Fitness (Average - Green)", 0, 10)
         self.display.drawText("Diversity (Blue)", 0, 20)
+        self.position =0,0
+        self.reach_corner = False
+        self.up_point =0,0.57
+        self.right_point = -0.49,0
+        self.down_poin = 0, -0.575
+        self.up_reached = False
+        self.down_reached = False
+        self.right_reached = False
     
-    def detect_circles(self, close_threshold=0.05, min_circle_len=2):
+    def detect_circles(self, close_threshold=0.75, min_circle_len=2):
         """检测机器人轨迹中的圆圈"""
         points = self.position_history
         circles = []
@@ -137,7 +145,23 @@ class ImprovedSupervisorGA:
         self.emitter.send("real_speed: {}".format(self.real_speed).encode("utf-8"))
         
         pos = self.robot_node.getPosition()
+        self.position = pos[0], pos[1]
         self.position_history.append([pos[0], pos[1]])
+        up_distance = math.sqrt((self.position[0]-self.up_point[0])**2 + (self.position[1]-self.up_point[1])**2)
+        right_distance = math.sqrt((self.position[0]-self.right_point[0])**2 + (self.position[1]-self.right_point[1])**2)
+        down_distance = math.sqrt((self.position[0]-self.down_poin[0])**2 + (self.position[1]-self.down_poin[1])**2)
+        if up_distance < 0.1:
+            self.up_reached = True
+            print("Up distance:", up_distance)
+        if down_distance < 0.1:
+            self.down_reached = True
+            print("Down distance:", down_distance)
+        if right_distance < 0.1:
+            self.right_reached = True
+            print("Right distance:", right_distance)
+        if self.up_reached and self.down_reached and self.right_reached:
+            self.reach_corner = True
+
         self.emitter.send("position: {}".format([pos[0], pos[1], pos[2]]).encode("utf-8"))
     
     def run_seconds(self, seconds):
@@ -241,6 +265,10 @@ class ImprovedSupervisorGA:
             
             # 评估每个个体
             for population_idx in range(self.num_population):
+                self.up_reached = False
+                self.right_reached = False
+                self.down_reached = False
+                self.reach_corner = False
                 self.position_history = []
                 genotype = self.population[population_idx]
                 
@@ -249,12 +277,17 @@ class ImprovedSupervisorGA:
                 
                 # 圆圈检测奖励
                 circles = self.detect_circles()
+                print(circles)
+                for (length, (start_idx, end_idx)) in circles:
+                    print(length)
                 for (length, (start_idx, end_idx)) in circles:
                     circle_quality = length / 4.0
-                    if 0.9 < circle_quality < 1.1:
+                    if 0.85 <= circle_quality <= 1.1 and self.reach_corner:
+                        fitness += 0.2
+                        break
+                    elif 0.8 < circle_quality < 1.2 and self.reach_corner:
                         fitness += 0.1
-                    elif 0.8 < circle_quality < 1.2:
-                        fitness += 0.05
+                        break
                 
                 print(f"  Individual {population_idx + 1:2d}: Fitness = {fitness:.4f}")
                 current_population.append((genotype, float(fitness)))
