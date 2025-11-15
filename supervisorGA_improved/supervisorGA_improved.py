@@ -84,6 +84,14 @@ class ImprovedSupervisorGA:
         self.up_reached = False
         self.down_reached = False
         self.right_reached = False
+        self.up_reached2 = False
+        self.down_reached2 = False
+        self.right_reached2 = False
+        self.reach_corner2 = False
+        self.up_reached3 = False
+        self.down_reached3 = False
+        self.right_reached3 = False
+        self.reach_corner3 = False
     
     def detect_circles(self, close_threshold=0.75, min_circle_len=2):
         """检测机器人轨迹中的圆圈"""
@@ -152,15 +160,31 @@ class ImprovedSupervisorGA:
         down_distance = math.sqrt((self.position[0]-self.down_poin[0])**2 + (self.position[1]-self.down_poin[1])**2)
         if up_distance < 0.1:
             self.up_reached = True
-            print("Up distance:", up_distance)
+            # print("Up distance:", up_distance)
         if down_distance < 0.1:
             self.down_reached = True
-            print("Down distance:", down_distance)
+            # print("Down distance:", down_distance)
         if right_distance < 0.1:
             self.right_reached = True
-            print("Right distance:", right_distance)
+            # print("Right distance:", right_distance)
         if self.up_reached and self.down_reached and self.right_reached:
             self.reach_corner = True
+        if up_distance<0.15:
+            self.up_reached2 = True
+        if down_distance<0.15:
+            self.down_reached2 = True
+        if right_distance<0.15:
+            self.right_reached2 = True
+        if self.up_reached2 and self.down_reached2 and self.right_reached2:
+            self.reach_corner2 = True
+        if up_distance<0.18:
+            self.up_reached3 = True
+        if down_distance<0.18:
+            self.down_reached3 = True
+        if right_distance<0.18:
+            self.right_reached3 = True
+        if self.up_reached3 and self.down_reached3 and self.right_reached3:
+            self.reach_corner3 = True
 
         self.emitter.send("position: {}".format([pos[0], pos[1], pos[2]]).encode("utf-8"))
     
@@ -269,22 +293,39 @@ class ImprovedSupervisorGA:
                 self.right_reached = False
                 self.down_reached = False
                 self.reach_corner = False
+                self.up_reached2 = False
+                self.right_reached2 = False
+                self.down_reached2 = False
+                self.reach_corner2 = False
+                self.up_reached3 = False
+                self.right_reached3 = False
+                self.down_reached3 = False
+                self.reach_corner3 = False
                 self.position_history = []
                 genotype = self.population[population_idx]
                 
                 # 评估基础适应度
                 fitness = self.evaluate_genotype(genotype, generation)
                 
-                # 圆圈检测奖励
-                circles = self.detect_circles()
-                print(circles)
-                for (length, (start_idx, end_idx)) in circles:
-                    print(length)
-                for (length, (start_idx, end_idx)) in circles:
-                    circle_quality = length / 4.0
-                    if 0.7 <= circle_quality <= 1.1 and self.reach_corner:
-                        fitness += 0.1
-                        break
+                # # 圆圈检测奖励
+                # circles = self.detect_circles()
+                if self.reach_corner:
+                    fitness += 0.1
+                    print("reach_corner:", self.reach_corner)
+                elif self.reach_corner2:
+                    fitness += 0.05
+                    print("reach_corner2:", self.reach_corner2)
+                elif self.reach_corner3:
+                    fitness += 0.02
+                    print("reach_corner3:", self.reach_corner3)
+                # print(circles)
+                # for (length, (start_idx, end_idx)) in circles:
+                #     print(length)
+                # for (length, (start_idx, end_idx)) in circles:
+                #     circle_quality = length / 4.0
+                #     if 0.7 <= circle_quality <= 1.1 and self.reach_corner:
+                #         fitness += 0.1
+                #         break
                     # elif 0.8 < circle_quality < 1.2 and self.reach_corner:
                     #     fitness += 0.1
                     #     break
