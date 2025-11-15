@@ -282,12 +282,12 @@ class ImprovedSupervisorGA:
                     print(length)
                 for (length, (start_idx, end_idx)) in circles:
                     circle_quality = length / 4.0
-                    if 0.85 <= circle_quality <= 1.1 and self.reach_corner:
-                        fitness += 0.2
-                        break
-                    elif 0.8 < circle_quality < 1.2 and self.reach_corner:
+                    if 0.7 <= circle_quality <= 1.1 and self.reach_corner:
                         fitness += 0.1
                         break
+                    # elif 0.8 < circle_quality < 1.2 and self.reach_corner:
+                    #     fitness += 0.1
+                    #     break
                 
                 print(f"  Individual {population_idx + 1:2d}: Fitness = {fitness:.4f}")
                 current_population.append((genotype, float(fitness)))
