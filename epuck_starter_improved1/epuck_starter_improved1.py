@@ -183,8 +183,8 @@ class Controller:
                    lost_line_penalty)
         # if self.real_speed <0.005 and self.is_on_edge:
         #     fitness = 0.0
-        # if self.is_on_edge:
-        #     fitness = 0.0
+        if self.is_on_edge:
+            fitness = 0.0
 
         if self.real_speed < 0.01:
             fitness -= 0.5

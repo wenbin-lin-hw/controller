@@ -40,9 +40,9 @@ class ImprovedSupervisorGA:
         self.current_generation = 0
         
         ### 改进的GA参数
-        self.num_generations = 200  # 增加到200代
-        self.num_population = 80    # 增加到80个个体
-        self.num_elite = 8         # 精英数量增加到8
+        self.num_generations = 150  # 增加到200代
+        self.num_population = 60    # 增加到80个个体
+        self.num_elite = 6        # 精英数量增加到8
         
         # 初始化改进的GA
         self.ga = ga.ImprovedGA(
@@ -92,6 +92,9 @@ class ImprovedSupervisorGA:
         self.down_reached3 = False
         self.right_reached3 = False
         self.reach_corner3 = False
+        self.reach_down_right_corner1 = False
+        self.reach_down_right_corner2 = False
+        self.reach_down_right_corner3 = False
     
     def detect_circles(self, close_threshold=0.75, min_circle_len=2):
         """检测机器人轨迹中的圆圈"""
@@ -169,22 +172,28 @@ class ImprovedSupervisorGA:
             # print("Right distance:", right_distance)
         if self.up_reached and self.down_reached and self.right_reached:
             self.reach_corner = True
-        if up_distance<0.15:
+        if up_distance<0.17:
             self.up_reached2 = True
-        if down_distance<0.15:
+        if down_distance<0.17:
             self.down_reached2 = True
-        if right_distance<0.15:
+        if right_distance<0.17:
             self.right_reached2 = True
         if self.up_reached2 and self.down_reached2 and self.right_reached2:
             self.reach_corner2 = True
-        if up_distance<0.18:
+        if up_distance<0.2:
             self.up_reached3 = True
-        if down_distance<0.18:
+        if down_distance<0.2:
             self.down_reached3 = True
-        if right_distance<0.18:
+        if right_distance<0.2:
             self.right_reached3 = True
         if self.up_reached3 and self.down_reached3 and self.right_reached3:
             self.reach_corner3 = True
+        if self.down_reached and self.right_reached:
+            self.reach_down_right_corner1 = True
+        if self.down_reached2 and self.right_reached2:
+            self.reach_down_right_corner2 = True
+        if self.down_reached3 and self.right_reached3:
+            self.reach_down_right_corner3 = True
 
         self.emitter.send("position: {}".format([pos[0], pos[1], pos[2]]).encode("utf-8"))
     
@@ -301,6 +310,9 @@ class ImprovedSupervisorGA:
                 self.right_reached3 = False
                 self.down_reached3 = False
                 self.reach_corner3 = False
+                self.reach_down_right_corner1 = False
+                self.reach_down_right_corner2 = False
+                self.reach_down_right_corner3 = False
                 self.position_history = []
                 genotype = self.population[population_idx]
                 
@@ -309,15 +321,25 @@ class ImprovedSupervisorGA:
                 
                 # # 圆圈检测奖励
                 # circles = self.detect_circles()
-                if self.reach_corner:
-                    fitness += 0.1
-                    print("reach_corner:", self.reach_corner)
-                elif self.reach_corner2:
-                    fitness += 0.05
-                    print("reach_corner2:", self.reach_corner2)
-                elif self.reach_corner3:
-                    fitness += 0.02
-                    print("reach_corner3:", self.reach_corner3)
+                if self.current_generation >= 0.5*self.num_generations:
+                    if self.reach_corner:
+                        fitness += 0.15
+                        print("reach_corner:", self.reach_corner)
+                    elif self.reach_down_right_corner1:
+                        fitness += 0.15
+                        print("reach_down_right_corner1:", self.reach_down_right_corner1)
+                    elif self.reach_corner2:
+                        fitness += 0.1
+                        print("reach_corner2:", self.reach_corner2)
+                    elif self.reach_down_right_corner2:
+                        fitness += 0.1
+                        print("reach_down_right_corner2:", self.reach_down_right_corner2)
+                    elif self.reach_corner3:
+                        fitness += 0.05
+                        print("reach_corner3:", self.reach_corner3)
+                    elif self.reach_down_right_corner3:
+                        fitness += 0.05
+                        print("reach_down_right_corner3:", self.reach_down_right_corner3)
                 # print(circles)
                 # for (length, (start_idx, end_idx)) in circles:
                 #     print(length)
