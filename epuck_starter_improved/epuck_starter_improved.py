@@ -156,10 +156,10 @@ class Controller:
 
         # 2. 方向修正奖励
         correction_reward = 0
-        if left_sensor < 500 and right_sensor > 500:  # 线在左侧，应该右转
+        if left_sensor < 500 and right_sensor > 500:  # 线在左侧，应该左转
             if right_speed > left_speed:
                 correction_reward = 0.8
-        elif right_sensor < 500 and left_sensor > 500:  # 线在右侧，应该左转
+        elif right_sensor < 500 and left_sensor > 500:  # 线在右侧，应该右转
             if left_speed > right_speed:
                 correction_reward = 0.8
         elif center_sensor < 500:  # 线在中心，应该直行
@@ -168,7 +168,7 @@ class Controller:
 
         # 3. 速度奖励（在线上时保持速度）
         speed_reward = 0
-        if line_detection_reward > 0.5:
+        if line_detection_reward >= 0.5:
             speed_reward = (left_speed + right_speed) / (2 * max_speed)
 
         # 4. 丢线惩罚
@@ -206,7 +206,7 @@ class Controller:
         #             self.velocity_right) > 0.8 and self.velocity_right * self.velocity_left < 0:
         #         fitness = 0.0
 
-        return max(0, fitness)
+        return max(-0.3, fitness)
 
     # ============================================================================
     # FITNESS FUNCTION 3: AVOID COLLISION FITNESS
