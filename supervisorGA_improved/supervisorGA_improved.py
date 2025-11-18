@@ -321,25 +321,25 @@ class ImprovedSupervisorGA:
                 
                 # # 圆圈检测奖励
                 # circles = self.detect_circles()
-                if self.current_generation >= 0.5*self.num_generations:
-                    if self.reach_corner:
-                        fitness += 0.10
-                        print("reach_corner:", self.reach_corner)
-                    elif self.reach_down_right_corner1:
-                        fitness += 0.06
-                        print("reach_down_right_corner1:", self.reach_down_right_corner1)
-                    elif self.reach_corner2:
-                        fitness += 0.06
-                        print("reach_corner2:", self.reach_corner2)
-                    elif self.reach_down_right_corner2:
-                        fitness += 0.4
-                        print("reach_down_right_corner2:", self.reach_down_right_corner2)
-                    elif self.reach_corner3:
-                        fitness += 0.03
-                        print("reach_corner3:", self.reach_corner3)
-                    elif self.reach_down_right_corner3:
-                        fitness += 0.03
-                        print("reach_down_right_corner3:", self.reach_down_right_corner3)
+                # if self.current_generation >= 0.5*self.num_generations:
+                #     if self.reach_corner:
+                #         fitness += 0.10
+                #         print("reach_corner:", self.reach_corner)
+                #     elif self.reach_down_right_corner1:
+                #         fitness += 0.06
+                #         print("reach_down_right_corner1:", self.reach_down_right_corner1)
+                #     elif self.reach_corner2:
+                #         fitness += 0.06
+                #         print("reach_corner2:", self.reach_corner2)
+                #     elif self.reach_down_right_corner2:
+                #         fitness += 0.4
+                #         print("reach_down_right_corner2:", self.reach_down_right_corner2)
+                #     elif self.reach_corner3:
+                #         fitness += 0.03
+                #         print("reach_corner3:", self.reach_corner3)
+                #     elif self.reach_down_right_corner3:
+                #         fitness += 0.03
+                #         print("reach_down_right_corner3:", self.reach_down_right_corner3)
                 # print(circles)
                 # for (length, (start_idx, end_idx)) in circles:
                 #     print(length)

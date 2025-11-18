@@ -101,7 +101,7 @@ class Controller:
         self.action_number = 0
         self.position = 0,0
 
-    def forwardFitness(self):
+    def forwardFitness(left_speed, right_speed, max_speed=1.0):
         """
         前进适应度函数
 
@@ -132,13 +132,13 @@ class Controller:
 
         # 1. 速度分量：鼓励高速运动
         # 使用两轮速度的平均值，归一化到[0,1]
-        avg_speed = (self.velocity_left +self.velocity_right ) / 2.0
-        speed_component = avg_speed / self.max_speed
+        avg_speed = (left_speed + right_speed) / 2.0
+        speed_component = avg_speed / max_speed
 
         # 2. 直线分量：鼓励直线运动
         # 两轮速度差异越小，直线性越好
-        speed_diff = abs(self.velocity_left - self.velocity_right)
-        straightness = 1.0 - (speed_diff / (2.0 * self.max_speed))
+        speed_diff = abs(left_speed - right_speed)
+        straightness = 1.0 - (speed_diff / (2.0 * max_speed))
 
         # 3. 方向惩罚：惩罚倒退
         # 如果平均速度为负（倒退），适应度为0
@@ -149,7 +149,7 @@ class Controller:
         fitness = speed_component * straightness
 
         # 确保适应度在[0, 1]范围内
-        return fitness
+        return max(0.0, min(1.0, fitness))
 
     def followLineFitness(self):
         """
@@ -171,31 +171,24 @@ class Controller:
         if center_sensor < 500:  # 中心传感器在线上
             line_detection_reward = 1.0
         elif left_sensor < 500 or right_sensor < 500:  # 偏离但还能检测到
-            line_detection_reward = 0.6
+            line_detection_reward = 0.5
 
         # 2. 方向修正奖励
         correction_reward = 0
         if left_sensor < 500 and right_sensor > 500:  # 线在左侧，应该左转
             if right_speed > left_speed:
-                turn_strength = (right_speed - left_speed) / max_speed
-                correction_reward = min(turn_strength * 1.5, 1.0)
+                correction_reward = 0.8
         elif right_sensor < 500 and left_sensor > 500:  # 线在右侧，应该右转
             if left_speed > right_speed:
-                if left_speed > right_speed:
-                    turn_strength = (left_speed - right_speed) / max_speed
-                    correction_reward = min(turn_strength * 1.5, 1.0)
+                correction_reward = 0.8
         elif center_sensor < 500:  # 线在中心，应该直行
-            # 线在中心，应该直行（两轮速度相近）
-            speed_similarity = 1.0 - abs(left_speed - right_speed) / max_speed
-            correction_reward = speed_similarity
+            if abs(left_speed - right_speed) < max_speed * 0.1:
+                correction_reward = 1.0
 
         # 3. 速度奖励（在线上时保持速度）
         speed_reward = 0
         if line_detection_reward >= 0.5:
-            avg_speed = (left_speed + right_speed) / 2.0
-            speed_reward = avg_speed / max_speed
-        else:
-            speed_reward = 0.0
+            speed_reward = (left_speed + right_speed) / (2 * max_speed)
 
         # 4. 丢线惩罚
         lost_line_penalty = 0
@@ -209,20 +202,20 @@ class Controller:
                    lost_line_penalty)
         # if self.real_speed <0.005 and self.is_on_edge:
         #     fitness = 0.0
-        # if self.is_on_edge:
-        #     fitness = 0.0
-        #
-        # if self.real_speed < 0.01:
-        #     fitness -= 0.5
-        #
-        # if fitness <=0 and self.position[1]<0.2 and self.position[1]>-0.3 and self.position[0]>0:
-        #     fitness = 0.2-abs(self.position[0]-0.46)*(0.2/0.46)
-        # if fitness <=0 and self.position[1]<0.2 and self.position[1]>-0.3 and self.position[0]<0:
-        #     fitness = 0.2-abs(abs(self.position[0])-0.5)*(0.2/0.5)
-        # if fitness <= 0 and (self.position[1] >=0.2 or self.position[1]<-0.3):
-        #     x, y = self.position
-        #     distance_from_center = np.sqrt(x ** 2 + y ** 2)
-        #     fitness = 0.2 - abs(distance_from_center - 0.57) * (0.2 / 0.2)
+        if self.is_on_edge:
+            fitness = 0.0
+
+        if self.real_speed < 0.01:
+            fitness -= 0.5
+
+        if fitness <=0 and self.position[1]<0.2 and self.position[1]>-0.3 and self.position[0]>0:
+            fitness = 0.2-abs(self.position[0]-0.46)*(0.2/0.46)
+        if fitness <=0 and self.position[1]<0.2 and self.position[1]>-0.3 and self.position[0]<0:
+            fitness = 0.2-abs(abs(self.position[0])-0.5)*(0.2/0.5)
+        if fitness <= 0 and (self.position[1] >=0.2 or self.position[1]<-0.3):
+            x, y = self.position
+            distance_from_center = np.sqrt(x ** 2 + y ** 2)
+            fitness = 0.2 - abs(distance_from_center - 0.57) * (0.2 / 0.2)
         # if self.action_number%100 ==0:
         #     print("fitness:",fitness)
         # if self.real_speed < 0.01 and max(abs(self.velocity_left), abs(self.velocity_right)) > 0.5:
@@ -232,7 +225,7 @@ class Controller:
         #             self.velocity_right) > 0.8 and self.velocity_right * self.velocity_left < 0:
         #         fitness = 0.0
 
-        return min(-0.5,fitness)
+        return max(-0.3, fitness)
 
     # ============================================================================
     # FITNESS FUNCTION 3: AVOID COLLISION FITNESS
@@ -299,12 +292,8 @@ class Controller:
         # print("max_front:",max_front)
 
         # 碰撞惩罚
-        if max_front > danger_threshold * 5:
-            return -5.0 # 严重碰撞
-
-        # 碰撞惩罚
         if max_front > danger_threshold * 3:
-            return -3.0  # 严重碰撞
+            return 0.0  # 严重碰撞
 
         # 计算避障得分
         if max_front < danger_threshold:
@@ -320,109 +309,72 @@ class Controller:
         right_obstacle = proximity_sensors[0] > danger_threshold
 
         avoidance_score = 1.0
-        if left_obstacle and not right_obstacle:
-            if left_speed > right_speed:
-                # 正确的避障行为
-                turn_strength = (left_speed - right_speed) / self.max_speed
-                avoidance_score = 0.7 + min(turn_strength, 0.3)
-            else:
-                # 转向不足或方向错误
-                avoidance_score = 0.4
-        elif right_obstacle and not left_obstacle:
-            # 右前方有障碍，应该左转（右轮快，左轮慢）
-            if right_speed > left_speed:
-                # 正确的避障行为
-                turn_strength = (right_speed - left_speed) / self.max_speed
-                avoidance_score = 0.7 + min(turn_strength, 0.3)
-            else:
-                # 转向不足或方向错误
-                avoidance_score = 0.4
+        if left_obstacle and right_speed < left_speed and left_speed - right_speed > 1.5:
+            # 左侧有障碍，应该右转（右轮慢）
+            avoidance_score = 1.0
+        elif left_obstacle and right_speed < left_speed and left_speed - right_speed > 1.0:
+            # 左侧有障碍，应该右转（右轮慢）
+            avoidance_score = 0.7
+        elif left_obstacle and right_speed < left_speed and left_speed - right_speed > 0.8:
+            # 左侧有障碍，应该右转（右轮慢）
+            avoidance_score = 0.6
+        elif left_obstacle and right_speed < left_speed and left_speed - right_speed > 0.6:
+            # 左侧有障碍，应该右转（右轮慢）
+            avoidance_score = 0.4
+        elif left_obstacle and right_speed < left_speed and left_speed - right_speed > 0.4:
+            # 左侧有障碍，应该右转（右轮慢）
+            avoidance_score = 0.3
+        elif left_obstacle and right_speed < left_speed and left_speed - right_speed > 0.2:
+            # 左侧有障碍，应该右转（右轮慢）
+            avoidance_score = 0.2
+        elif left_obstacle and right_speed < left_speed and left_speed - right_speed > 0.1:
+            # 左侧有障碍，应该右转（右轮慢）
+            avoidance_score = 0.1
+        if right_obstacle and left_speed < right_speed and right_speed - left_speed > 1.5:
+            # 右侧有障碍，应该左转（左轮慢）
+            avoidance_score = 1.0
+        elif right_obstacle and left_speed < right_speed and right_speed - left_speed > 1.0:
+            # 右侧有障碍，应该左转（左轮慢）
+            avoidance_score = 0.7
+        elif right_obstacle and left_speed < right_speed and right_speed - left_speed > 0.8:
+            # 右侧有障碍，应该左转（左轮慢）
+            avoidance_score = 0.6
+        elif right_obstacle and left_speed < right_speed and right_speed - left_speed > 0.6:
+            # 右侧有障碍，应该左转（左轮慢）
+            avoidance_score = 0.4
+        elif right_obstacle and left_speed < right_speed and right_speed - left_speed > 0.4:
+            # 右侧有障碍，应该左转（左轮慢）
+            avoidance_score = 0.3
+        elif right_obstacle and left_speed < right_speed and right_speed - left_speed > 0.2:
+            # 右侧有障碍，应该左转（左轮慢）
+            avoidance_score = 0.2
+        elif right_obstacle and left_speed < right_speed and right_speed - left_speed > 0.1:
+            # 右侧有障碍，应该左转（左轮慢）
+            avoidance_score = 0.1
 
-        elif left_obstacle and right_obstacle:
-            # 前方两侧都有障碍，应该后退或急转
-            if left_speed < 0 or right_speed < 0:
-                # 后退是合理的
-                avoidance_score = 0.6
-            elif abs(left_speed - right_speed) > 0.5 * self.max_speed:
-                # 急转也是合理的
-                avoidance_score = 0.5
-            else:
-                # 没有采取有效避障措施
-                avoidance_score = 0.2
-        # if left_obstacle and right_speed < left_speed and left_speed - right_speed > 1.5:
-        #     # 左侧有障碍，应该右转（右轮慢）
-        #     avoidance_score = 1.0
-        # elif left_obstacle and right_speed < left_speed and left_speed - right_speed > 1.0:
-        #     # 左侧有障碍，应该右转（右轮慢）
-        #     avoidance_score = 0.7
-        # elif left_obstacle and right_speed < left_speed and left_speed - right_speed > 0.8:
-        #     # 左侧有障碍，应该右转（右轮慢）
-        #     avoidance_score = 0.6
-        # elif left_obstacle and right_speed < left_speed and left_speed - right_speed > 0.6:
-        #     # 左侧有障碍，应该右转（右轮慢）
-        #     avoidance_score = 0.4
-        # elif left_obstacle and right_speed < left_speed and left_speed - right_speed > 0.4:
-        #     # 左侧有障碍，应该右转（右轮慢）
-        #     avoidance_score = 0.3
-        # elif left_obstacle and right_speed < left_speed and left_speed - right_speed > 0.2:
-        #     # 左侧有障碍，应该右转（右轮慢）
-        #     avoidance_score = 0.2
-        # elif left_obstacle and right_speed < left_speed and left_speed - right_speed > 0.1:
-        #     # 左侧有障碍，应该右转（右轮慢）
-        #     avoidance_score = 0.1
-        # if right_obstacle and left_speed < right_speed and right_speed - left_speed > 1.5:
-        #     # 右侧有障碍，应该左转（左轮慢）
-        #     avoidance_score = 1.0
-        # elif right_obstacle and left_speed < right_speed and right_speed - left_speed > 1.0:
-        #     # 右侧有障碍，应该左转（左轮慢）
-        #     avoidance_score = 0.7
-        # elif right_obstacle and left_speed < right_speed and right_speed - left_speed > 0.8:
-        #     # 右侧有障碍，应该左转（左轮慢）
-        #     avoidance_score = 0.6
-        # elif right_obstacle and left_speed < right_speed and right_speed - left_speed > 0.6:
-        #     # 右侧有障碍，应该左转（左轮慢）
-        #     avoidance_score = 0.4
-        # elif right_obstacle and left_speed < right_speed and right_speed - left_speed > 0.4:
-        #     # 右侧有障碍，应该左转（左轮慢）
-        #     avoidance_score = 0.3
-        # elif right_obstacle and left_speed < right_speed and right_speed - left_speed > 0.2:
-        #     # 右侧有障碍，应该左转（左轮慢）
-        #     avoidance_score = 0.2
-        # elif right_obstacle and left_speed < right_speed and right_speed - left_speed > 0.1:
-        #     # 右侧有障碍，应该左转（左轮慢）
-        #     avoidance_score = 0.1
-
-        # # 鼓励在检测到障碍时减速
-        # if max_front > danger_threshold:
-        #     avg_speed = (abs(left_speed) + abs(right_speed)) / 2.0
-        #     speed_reduction = 1.0 - min(avg_speed / self.max_speed, 1.0)
-        #     avoidance_score *= (0.7 + 0.3 * speed_reduction)
-        speed_adjustment_score = 1.0
+        # 鼓励在检测到障碍时减速
         if max_front > danger_threshold:
-            avg_speed = (abs(left_speed) + abs(right_speed)) / (2.0 * self.max_speed)
-            # 障碍物越近，期望速度越低
-            expected_speed_ratio = 1.0 - (max_front - danger_threshold) / (2*danger_threshold)
-            speed_diff = abs(avg_speed - expected_speed_ratio)
-            speed_adjustment_score = max(0.5, 1.0 - speed_diff)
+            avg_speed = (abs(left_speed) + abs(right_speed)) / 2.0
+            speed_reduction = 1.0 - min(avg_speed / self.max_speed, 1.0)
+            avoidance_score *= (0.7 + 0.3 * speed_reduction)
 
         # 综合得分
-        # fitness = safety_score * 0.6 + avoidance_score * 0.4
-        # if self.is_on_edge:
-        #     fitness = 0.0
-        # if self.real_speed < 0.02 and max(abs(self.velocity_left), abs(self.velocity_right)) > 0.5:
-        #     fitness = 0.0
-        # if abs(self.velocity_right) != 0:
-        #     if abs(self.velocity_left) / abs(
-        #             self.velocity_right) > 0.8 and self.velocity_right * self.velocity_left < 0:
-        #         fitness = 0.0
-        # if self.is_on_edge:
-        #     fitness = 0.9
-        # x,y = self.position
-        # if abs(x)>0.62 or abs(y)>0.66:
-        #     fitness=0.9
-        # 综合适应度：安全距离(50%) + 避障行为(30%) + 速度调整(20%)
-        fitness = safety_score * 0.5 + avoidance_score * 0.3 + speed_adjustment_score * 0.2
-        return fitness
+        fitness = safety_score * 0.6 + avoidance_score * 0.4
+        if self.is_on_edge:
+            fitness = 0.0
+        if self.real_speed < 0.02 and max(abs(self.velocity_left), abs(self.velocity_right)) > 0.5:
+            fitness = 0.0
+        if abs(self.velocity_right) != 0:
+            if abs(self.velocity_left) / abs(
+                    self.velocity_right) > 0.8 and self.velocity_right * self.velocity_left < 0:
+                fitness = 0.0
+        if self.is_on_edge:
+            fitness = 0.9
+        x,y = self.position
+        if abs(x)>0.62 or abs(y)>0.66:
+            fitness=0.9
+
+        return max(0.0, fitness)
 
         # return np.clip(fitness, 0.0, 1.0)
 
