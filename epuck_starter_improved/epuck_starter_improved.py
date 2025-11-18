@@ -300,10 +300,12 @@ class Controller:
 
         # 碰撞惩罚
         if max_front > danger_threshold * 5:
+            print("avoidCollisionFitness: -5.0")
             return -5.0 # 严重碰撞
 
         # 碰撞惩罚
         if max_front > danger_threshold * 3:
+            print("avoidCollisionFitness: -3.0")
             return -3.0  # 严重碰撞
 
         # 计算避障得分
