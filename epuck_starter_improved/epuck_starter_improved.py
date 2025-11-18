@@ -99,6 +99,7 @@ class Controller:
         self.real_speed = 0
         self.is_on_edge = False
         self.action_number = 0
+        self.position = 0,0
 
     def forwardFitness(self):
         # 速度奖励（平滑）
@@ -110,13 +111,23 @@ class Controller:
 
         # 边界惩罚（渐进式）
         x, y = self.position
-        max_dist = 0.7
+        max_dist = 0.67
         distance_from_center = np.sqrt(x ** 2 + y ** 2)
+        # if self.action_number%20 == 0:
+        #     print("distance_from_center:",distance_from_center)
         if distance_from_center > max_dist:
             boundary_penalty = (distance_from_center - max_dist) / 0.1
             boundary_penalty = min(boundary_penalty, 1.0)
         else:
             boundary_penalty = 0.0
+        # max_y = 0.67
+        # if abs(y) > max_y:
+        #     boundary_penalty += (abs(y) - max_y) / 1.0
+        #     boundary_penalty = min(boundary_penalty, 1.0)
+        # max_x = 0.59
+        # if abs(x) > max_x:
+        #     boundary_penalty += (abs(x) - max_x) / 1.0
+        #     boundary_penalty = min(boundary_penalty, 1.0)
 
         fitness = speed_reward * straightness * (1 - boundary_penalty)
         return max(0, fitness)
@@ -145,10 +156,10 @@ class Controller:
 
         # 2. 方向修正奖励
         correction_reward = 0
-        if left_sensor < 500 and right_sensor > 500:  # 线在左侧，应该右转
+        if left_sensor < 500 and right_sensor > 500:  # 线在左侧，应该左转
             if right_speed > left_speed:
                 correction_reward = 0.8
-        elif right_sensor < 500 and left_sensor > 500:  # 线在右侧，应该左转
+        elif right_sensor < 500 and left_sensor > 500:  # 线在右侧，应该右转
             if left_speed > right_speed:
                 correction_reward = 0.8
         elif center_sensor < 500:  # 线在中心，应该直行
@@ -157,7 +168,7 @@ class Controller:
 
         # 3. 速度奖励（在线上时保持速度）
         speed_reward = 0
-        if line_detection_reward > 0.5:
+        if line_detection_reward >= 0.5:
             speed_reward = (left_speed + right_speed) / (2 * max_speed)
 
         # 4. 丢线惩罚
@@ -178,6 +189,16 @@ class Controller:
         if self.real_speed < 0.01:
             fitness -= 0.5
 
+        if fitness <=0 and self.position[1]<0.2 and self.position[1]>-0.3 and self.position[0]>0:
+            fitness = 0.2-abs(self.position[0]-0.46)*(0.2/0.46)
+        if fitness <=0 and self.position[1]<0.2 and self.position[1]>-0.3 and self.position[0]<0:
+            fitness = 0.2-abs(abs(self.position[0])-0.5)*(0.2/0.5)
+        if fitness <= 0 and (self.position[1] >=0.2 or self.position[1]<-0.3):
+            x, y = self.position
+            distance_from_center = np.sqrt(x ** 2 + y ** 2)
+            fitness = 0.2 - abs(distance_from_center - 0.57) * (0.2 / 0.2)
+        # if self.action_number%100 ==0:
+        #     print("fitness:",fitness)
         # if self.real_speed < 0.01 and max(abs(self.velocity_left), abs(self.velocity_right)) > 0.5:
         #     fitness -= 0.2
         # if abs(self.velocity_right) != 0:
@@ -185,7 +206,7 @@ class Controller:
         #             self.velocity_right) > 0.8 and self.velocity_right * self.velocity_left < 0:
         #         fitness = 0.0
 
-        return max(0, fitness)
+        return max(-0.3, fitness)
 
     # ============================================================================
     # FITNESS FUNCTION 3: AVOID COLLISION FITNESS
@@ -329,7 +350,10 @@ class Controller:
                     self.velocity_right) > 0.8 and self.velocity_right * self.velocity_left < 0:
                 fitness = 0.0
         if self.is_on_edge:
-            fitness = 0.0
+            fitness = 0.9
+        x,y = self.position
+        if abs(x)>0.62 or abs(y)>0.66:
+            fitness=0.9
 
         return max(0.0, fitness)
 
@@ -533,9 +557,11 @@ class Controller:
         #     print("Fitness Weights Mapping:", fitnessWeightsMapping)
         adaptive_weights = self.get_adaptive_weights(self.current_generation,self.num_generations)
 
+
         ### Define the fitness function of this iteration which should be a combination of the previous functions
         combinedFitness = forwardFitness * adaptive_weights['forward'] + followLineFitness * \
                           adaptive_weights['followLine'] + avoidCollisionFitness * adaptive_weights['avoidCollision'] + spinningFitness * adaptive_weights['spinning']
+
         # if self.action_number % 100 == 0:
         #     # print("avoidCollisionFitness:", avoidCollisionFitness)
         #     print("Fitness Components - Forward: {:.3f}, Line: {:.3f}, Avoid Collision: {:.3f}, Spinning Penalty: {:.3f}".format(forwardFitness, followLineFitness, avoidCollisionFitness, spinningFitness))
@@ -543,6 +569,11 @@ class Controller:
         #     print("velocity_left, velocity_right:",self.velocity_left,self.velocity_right)
         self.fitness_values.append(combinedFitness)
         self.fitness = np.mean(self.fitness_values)
+        # if self.action_number % 200 == 0:
+        #     print("Adaptive Weights:", adaptive_weights)
+        #     print("forwardFitness:", forwardFitness, " followLineFitness:", followLineFitness,"avoidCollisionFitness:", avoidCollisionFitness, " spinningFitness:", spinningFitness)
+        #     print("Combined Fitness:", combinedFitness)
+        #     print("fitness:", self.fitness)
 
     def handle_emitter(self):
         # Send the self.fitness value to the supervisor
@@ -596,6 +627,7 @@ class Controller:
                     # print("Received position data:", position_data)
                     # Convert string representation of list to actual list
                     pos = eval(position_data)
+                    self.position = pos[0],pos[1]
                     x, y, z = pos
                     if abs(x) > 0.69 or abs(y) > 0.69:
                         self.is_on_edge = True
@@ -680,6 +712,9 @@ class Controller:
 
             # End of the iteration
 
+def run(robot):
+    controller = Controller(robot)
+    controller.run_robot()
 
 if __name__ == "__main__":
     # Call Robot function to initialize the robot

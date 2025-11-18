@@ -40,9 +40,9 @@ class ImprovedSupervisorGA:
         self.current_generation = 0
         
         ### 改进的GA参数
-        self.num_generations = 200  # 增加到200代
-        self.num_population = 80    # 增加到80个个体
-        self.num_elite = 8          # 精英数量增加到8
+        self.num_generations = 150  # 增加到200代
+        self.num_population = 60    # 增加到80个个体
+        self.num_elite = 6        # 精英数量增加到8
         
         # 初始化改进的GA
         self.ga = ga.ImprovedGA(
@@ -76,8 +76,27 @@ class ImprovedSupervisorGA:
         self.display.drawText("Fitness (Best - Red)", 0, 0)
         self.display.drawText("Fitness (Average - Green)", 0, 10)
         self.display.drawText("Diversity (Blue)", 0, 20)
+        self.position =0,0
+        self.reach_corner = False
+        self.up_point =0,0.57
+        self.right_point = -0.49,0
+        self.down_poin = 0, -0.575
+        self.up_reached = False
+        self.down_reached = False
+        self.right_reached = False
+        self.up_reached2 = False
+        self.down_reached2 = False
+        self.right_reached2 = False
+        self.reach_corner2 = False
+        self.up_reached3 = False
+        self.down_reached3 = False
+        self.right_reached3 = False
+        self.reach_corner3 = False
+        self.reach_down_right_corner1 = False
+        self.reach_down_right_corner2 = False
+        self.reach_down_right_corner3 = False
     
-    def detect_circles(self, close_threshold=0.05, min_circle_len=2):
+    def detect_circles(self, close_threshold=0.75, min_circle_len=2):
         """检测机器人轨迹中的圆圈"""
         points = self.position_history
         circles = []
@@ -137,7 +156,45 @@ class ImprovedSupervisorGA:
         self.emitter.send("real_speed: {}".format(self.real_speed).encode("utf-8"))
         
         pos = self.robot_node.getPosition()
+        self.position = pos[0], pos[1]
         self.position_history.append([pos[0], pos[1]])
+        up_distance = math.sqrt((self.position[0]-self.up_point[0])**2 + (self.position[1]-self.up_point[1])**2)
+        right_distance = math.sqrt((self.position[0]-self.right_point[0])**2 + (self.position[1]-self.right_point[1])**2)
+        down_distance = math.sqrt((self.position[0]-self.down_poin[0])**2 + (self.position[1]-self.down_poin[1])**2)
+        if up_distance < 0.1:
+            self.up_reached = True
+            # print("Up distance:", up_distance)
+        if down_distance < 0.1:
+            self.down_reached = True
+            # print("Down distance:", down_distance)
+        if right_distance < 0.1:
+            self.right_reached = True
+            # print("Right distance:", right_distance)
+        if self.up_reached and self.down_reached and self.right_reached:
+            self.reach_corner = True
+        if up_distance<0.17:
+            self.up_reached2 = True
+        if down_distance<0.17:
+            self.down_reached2 = True
+        if right_distance<0.17:
+            self.right_reached2 = True
+        if self.up_reached2 and self.down_reached2 and self.right_reached2:
+            self.reach_corner2 = True
+        if up_distance<0.2:
+            self.up_reached3 = True
+        if down_distance<0.2:
+            self.down_reached3 = True
+        if right_distance<0.2:
+            self.right_reached3 = True
+        if self.up_reached3 and self.down_reached3 and self.right_reached3:
+            self.reach_corner3 = True
+        if self.down_reached and self.right_reached:
+            self.reach_down_right_corner1 = True
+        if self.down_reached2 and self.right_reached2:
+            self.reach_down_right_corner2 = True
+        if self.down_reached3 and self.right_reached3:
+            self.reach_down_right_corner3 = True
+
         self.emitter.send("position: {}".format([pos[0], pos[1], pos[2]]).encode("utf-8"))
     
     def run_seconds(self, seconds):
@@ -241,20 +298,59 @@ class ImprovedSupervisorGA:
             
             # 评估每个个体
             for population_idx in range(self.num_population):
+                self.up_reached = False
+                self.right_reached = False
+                self.down_reached = False
+                self.reach_corner = False
+                self.up_reached2 = False
+                self.right_reached2 = False
+                self.down_reached2 = False
+                self.reach_corner2 = False
+                self.up_reached3 = False
+                self.right_reached3 = False
+                self.down_reached3 = False
+                self.reach_corner3 = False
+                self.reach_down_right_corner1 = False
+                self.reach_down_right_corner2 = False
+                self.reach_down_right_corner3 = False
                 self.position_history = []
                 genotype = self.population[population_idx]
                 
                 # 评估基础适应度
                 fitness = self.evaluate_genotype(genotype, generation)
                 
-                # 圆圈检测奖励
-                circles = self.detect_circles()
-                for (length, (start_idx, end_idx)) in circles:
-                    circle_quality = length / 4.0
-                    if 0.9 < circle_quality < 1.1:
-                        fitness += 0.1
-                    elif 0.8 < circle_quality < 1.2:
-                        fitness += 0.05
+                # # 圆圈检测奖励
+                # circles = self.detect_circles()
+                if self.current_generation >= 0.5*self.num_generations:
+                    if self.reach_corner:
+                        fitness += 0.10
+                        print("reach_corner:", self.reach_corner)
+                    elif self.reach_down_right_corner1:
+                        fitness += 0.06
+                        print("reach_down_right_corner1:", self.reach_down_right_corner1)
+                    elif self.reach_corner2:
+                        fitness += 0.06
+                        print("reach_corner2:", self.reach_corner2)
+                    elif self.reach_down_right_corner2:
+                        fitness += 0.4
+                        print("reach_down_right_corner2:", self.reach_down_right_corner2)
+                    elif self.reach_corner3:
+                        fitness += 0.03
+                        print("reach_corner3:", self.reach_corner3)
+                    elif self.reach_down_right_corner3:
+                        fitness += 0.03
+                        print("reach_down_right_corner3:", self.reach_down_right_corner3)
+                # print(circles)
+                # for (length, (start_idx, end_idx)) in circles:
+                #     print(length)
+                # for (length, (start_idx, end_idx)) in circles:
+                #     circle_quality = length / 4.0
+                #     if 0.7 <= circle_quality <= 1.1 and self.reach_corner:
+                #         fitness += 0.1
+                #         break
+                    # elif 0.8 < circle_quality < 1.2 and self.reach_corner:
+                    #     fitness += 0.1
+                    #     break
                 
                 print(f"  Individual {population_idx + 1:2d}: Fitness = {fitness:.4f}")
                 current_population.append((genotype, float(fitness)))
@@ -278,7 +374,7 @@ class ImprovedSupervisorGA:
             print(f"{'='*60}")
             
             # 保存最优个体
-            np.save("Best.npy", best[0])
+            np.save("../supervisorGA_starter/Best.npy", best[0])
             
             # 绘制适应度曲线
             self.plot_fitness(generation, best[1], average, diversity)
@@ -312,7 +408,7 @@ class ImprovedSupervisorGA:
     
     def run_demo(self):
         """运行最优个体演示"""
-        genotype = np.load("Best.npy")
+        genotype = np.load("../supervisorGA_starter/Best.npy")
         self.emitterData = str(genotype)
         
         INITIAL_TRANS = [0.47, 0.16, 0]
